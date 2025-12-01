@@ -1,24 +1,26 @@
-from newsapi import NewsApiClient
+import requests
+import dash
+from dash import dcc, html
+import json
 
-# Init
-newsapi = NewsApiClient(api_key='API_KEY')
+# Fetch data from NewsData.io API
+apikey = "pub_e01786d969bd455ea939b8aceea71f14"
+city = input("Enter the city you want to search for: ")
 
-# /v2/top-headlines
-top_headlines = newsapi.get_top_headlines(q='bitcoin',
-                                          sources='bbc-news,the-verge',
-                                          category='business',
-                                          language='en',
-                                          country='us')
+url = f"https://newsdata.io/api/1/latest?apikey={apikey}&country=ro&language=ro&region={city}"
+response = requests.get(url)
+data = response.json()
 
-# /v2/everything
-all_articles = newsapi.get_everything(q='bitcoin',
-                                      sources='bbc-news,the-verge',
-                                      domains='bbc.co.uk,techcrunch.com',
-                                      from_param='2017-12-01',
-                                      to='2017-12-12',
-                                      language='en',
-                                      sort_by='relevancy',
-                                      page=2)
+# Create Dash app
+app = dash.Dash(__name__)
 
-# /v2/top-headlines/sources
-sources = newsapi.get_sources()
+# Build the dashboard layout
+app.layout = html.Div([
+    html.H1("NewsData.io Dashboard"),
+    html.H2(f"Results for: {city}"),
+    html.Pre(json.dumps(data, indent=2))
+])
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
