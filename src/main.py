@@ -1,48 +1,59 @@
-import dash
-from dash import html
 import requests
-import webbrowser
+import tkinter as tk
+from tkinter import scrolledtext
 
-app = dash.Dash(__name__)
+API_KEY = "pub_e01786d969bd455ea939b8aceea71f14" 
 
-app.layout = html.Div([
-    html.H1("Latest News from Romania"),
-    html.Div(id='news-container', style={'marginTop': '20px'})
-])
-
-@app.callback(
-    dash.Output('news-container', 'children'),
-    dash.Input('interval-component', 'n_intervals'),
-    prevent_initial_call=False
-)
-def update_news(n):
-    url = "https://newsdata.io/api/1/latest"
-    params = {
-        "country": "ro",
-        "apikey": "pub_e01786d969bd455ea939b8aceea71f14"  
-    }
+def fetch_news():
+    city = city_entry.get().strip()
+    
+    # Romania-only news + city keyword
+    url = f"https://newsdata.io/api/1/news?apikey={API_KEY}&country=ro&q={city}"
+    
+    response = requests.get(url)
     
     try:
-        response = requests.get(url, params=params)
-        data = response.json()
-        
-        if data.get('results'):
-            news_items = []
-            for article in data['results'][:10]:  # Display top 10 articles
-                news_items.append(
-                    html.Div([
-                        html.H3(article.get('title', 'No title')),
-                        html.P(article.get('description', 'No description')),
-                        html.A('Read more', href=article.get('link', '#'), target='_blank'),
-                        html.Hr()
-                    ], style={'border': '1px solid #ddd', 'padding': '10px', 'marginBottom': '10px'})
-                )
-            return news_items
-        else:
-            return html.P("No news available.")
+        data = response.json()   # ensure JSON
+    except ValueError:
+        text_area.delete(1.0, tk.END)
+        text_area.insert(tk.END, "Error: Response was not valid JSON.\n")
+        text_area.insert(tk.END, response.text)
+        return
     
-    except Exception as e:
-        return html.P(f"Error fetching news: {str(e)}")
+    if not isinstance(data, dict):
+        text_area.delete(1.0, tk.END)
+        text_area.insert(tk.END, f"Unexpected response type: {type(data)}\n")
+        text_area.insert(tk.END, str(data))
+        return
+    
+    articles = data.get("results", [])
+    
+    # Clear previous text
+    text_area.delete(1.0, tk.END)
+    
+    if articles:
+        for article in articles:
+            title = article.get("title", "No Title")
+            link = article.get("link", "")
+            text_area.insert(tk.END, f"• {title}\n{link}\n\n")
+    else:
+        text_area.insert(tk.END, f"No articles found for city: {city}")
 
-if __name__ == '__main__':
-    app.run(port=8050, open_browser=True)
+# --- GUI setup ---
+window = tk.Tk()
+window.title("Romania News")
+
+# City input field
+tk.Label(window, text="Enter city name:").pack(pady=5)
+city_entry = tk.Entry(window, width=30)
+city_entry.pack(pady=5)
+
+# Fetch button
+fetch_button = tk.Button(window, text="Fetch News for City", command=fetch_news)
+fetch_button.pack(pady=5)
+
+# Scrollable text area
+text_area = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=80, height=20)
+text_area.pack(padx=10, pady=10)
+
+window.mainloop()
