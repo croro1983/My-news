@@ -1,8 +1,15 @@
+import os
 import requests
 import tkinter as tk
 from tkinter import scrolledtext
+from dotenv import load_dotenv
 
-API_KEY = "pub_e01786d969bd455ea939b8aceea71f14" 
+load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
+print(API_KEY)
+
+
 
 def fetch_news():
     city = city_entry.get().strip()
